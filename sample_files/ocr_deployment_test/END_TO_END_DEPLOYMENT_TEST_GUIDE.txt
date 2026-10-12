@@ -1,0 +1,265 @@
+ASUNCION PSMS - DEPLOYMENT-STYLE END-TO-END TEST GUIDE
+==========================================================
+
+TEST GOAL
+Run one complete procurement chain:
+PPMP OCR check -> PPMP -> APP -> PR -> AOQ OCR -> PO -> NLP -> IAR -> Inventory -> RIS/ICS -> Reports -> Audit Trail
+
+IMPORTANT CURRENT BEHAVIOR DISCOVERED
+The PPMP OCR upload currently extracts and displays raw text only. It does NOT automatically convert the OCR text into a PPMP table row.
+Therefore this test image intentionally matches an item that already exists in data/PPMP_Data.xlsx under NON-DBM:
+  Procurement of ICT Equipment
+  2 units Laptop Computer, Intel i5, at least 8GB RAM, 512GB SSD, 15.6-inch display
+  Budget: PHP 140,000.00
+After verifying OCR text, select that matching NON-DBM row and generate the PPMP.
+This should be logged as a functional gap if your intended requirement is "OCR creates/populates PPMP automatically."
+
+PRE-TEST
+1. Start Docker Desktop and wait for Engine Running.
+2. In capstone folder:
+   powershell -ExecutionPolicy Bypass -File .\START_SYSTEM.ps1
+3. Open http://127.0.0.1:5000
+4. Optional health test:
+   http://127.0.0.1:5000/health
+   Confirm:
+     application = ready
+     database = true
+     nlp_model_active = true
+5. If NLP model is false, stop the test before NLP and fix the model installation first.
+
+A. LOGIN
+1. Sign in with your configured admin account.
+2. Expected:
+   - Dashboard opens.
+   - "Offline system" badge is visible.
+   - No server error or blank page.
+3. Check Dashboard pipeline counts.
+
+B. PPMP OCR + PPMP CREATION
+1. Sidebar -> PPMP.
+2. Open NON-DBM.
+3. In Upload OCR File, choose:
+   01_PPMP_OCR_TEST_NON_DBM.png
+4. Click Upload & extract.
+5. Expected extracted text should contain, at minimum:
+   - Procurement of ICT Equipment
+   - Goods
+   - 2 units Laptop Computer
+   - Intel i5
+   - 8GB RAM
+   - 512GB SSD
+   - Public Bidding
+   - 140000.00
+6. Record any missing/misread words exactly.
+7. In the NON-DBM item table, locate the matching laptop row.
+8. Click Review and confirm its fields.
+9. Tick/select that row.
+10. Click Generate PPMP.
+11. Expected:
+    - Success message.
+    - New PPMP number.
+    - PPMP record appears on PPMP page.
+    - Total should be PHP 140,000.00.
+12. Open/print/review the PPMP.
+
+C. APP
+1. Sidebar -> APP.
+2. Choose the newly created PPMP.
+3. Generate APP.
+4. Expected status: For Review.
+5. Click Review.
+6. Verify linked PPMP, office, year, item, quantity/specification and PHP 140,000.00.
+7. Approve the APP from the review page.
+8. Expected status: Approved.
+
+D. PURCHASE REQUEST
+1. Sidebar -> Purchase Request.
+2. Choose the approved APP.
+3. Purpose can remain:
+   Procurement of approved supplies, equipment, and services.
+4. Click Create PR.
+5. Expected status: For Review.
+6. Click Review.
+7. Verify:
+   - source APP and PPMP
+   - laptop description/specifications
+   - quantity 2
+   - total PHP 140,000.00
+8. Approve PR.
+9. Expected: system directs/permits you to continue to AOQ.
+
+E. AOQ OCR / BIDDING RESULT
+1. Sidebar -> AOQ / Bidding Result.
+2. Select the exact approved PR created above.
+3. Upload:
+   02_AOQ_OCR_TEST_MATCHING.png
+4. Click Upload and Detect AOQ.
+5. Expected extraction:
+   Supplier: Davao Tech Solutions
+   Item: Laptop Computer
+   Description: Intel i5, at least 8GB RAM, 512GB SSD, 15.6-inch display
+   Quantity: 2
+   Unit: units
+   Unit Cost: PHP 68,500.00
+   Total Amount: PHP 137,000.00
+   Winning Supplier: Davao Tech Solutions
+6. IMPORTANT: Review the extracted supplier and offer fields before saving.
+7. Confirm Davao Tech Solutions as the winner.
+8. Save the AOQ.
+9. Open Review.
+10. Verify raw extracted text, winner, items and amount.
+11. Approve AOQ.
+12. Expected status: Approved.
+
+F. PURCHASE ORDER
+1. Sidebar -> Purchase Order.
+2. Select the newly approved AOQ.
+3. Generate PO.
+4. Expected:
+   - Supplier: Davao Tech Solutions
+   - Total: approximately PHP 137,000.00
+   - PO items originate from the AOQ winning offer, not copied directly from PR.
+5. Review PO.
+6. Approve PO.
+7. Expected: approved PO becomes available in NLP Verification.
+
+G. NLP VERIFICATION
+1. Sidebar -> NLP Verification.
+2. Confirm "FastText Active" / model active.
+3. Choose the newly approved PO.
+4. Click Run verification.
+5. Expected for the matching test:
+   - A verification record is created.
+   - PR and PO numbers are correctly linked.
+   - Result should normally be Acceptable or Needs Review, depending on trained-model behavior.
+   - Confidence is displayed.
+6. Open Review.
+7. Compare PR and PO text.
+8. Approve NLP result.
+9. IMPORTANT:
+   - Acceptable or Needs Review can continue to IAR.
+   - Needs Recanvass/Reject blocks IAR.
+10. Do not manually force a result just to continue; log unexpected model behavior as a defect/test finding.
+
+H. IAR / AIR
+1. Sidebar -> IAR / AIR.
+2. Select the eligible approved PO.
+3. Create IAR.
+4. Expected status: For Review.
+5. Review:
+   - PR
+   - AOQ
+   - PO
+   - approved NLP result
+   - delivered items
+6. Approve IAR.
+7. Expected:
+   - IAR status Approved.
+   - Inventory receives the delivered laptop item(s).
+
+I. INVENTORY
+1. Sidebar -> Inventory.
+2. Search "Laptop".
+3. Expected:
+   - Source PO is the PO created in this test.
+   - Category should be Equipment.
+   - Quantity should reflect the IAR quantity.
+   - Status should be Available.
+4. Record the Inventory ID and quantity before issuing.
+
+J. ICS (FOR LAPTOP EQUIPMENT)
+1. Sidebar -> RIS / ICS.
+2. Choose ICS, not RIS, because laptop is Equipment.
+3. Choose the laptop inventory item.
+4. Issue quantity: 1.
+5. Enter office/custodian.
+6. Create ICS.
+7. Review and approve ICS.
+8. Return to Inventory.
+9. Expected:
+   - quantity is reduced by 1
+   - transaction appears under Recent Inventory Transactions
+   - no double deduction occurs if you revisit an already approved ICS
+
+K. REPORTS
+1. Sidebar -> Reports.
+2. Expected counts now include at least:
+   PPMP 1+
+   APP 1+
+   PR 1+
+   AOQ 1+
+   PO 1+
+   NLP 1+
+   IAR 1+
+   Inventory 1+
+   RIS/ICS 1+
+3. Verify totals:
+   - PPMP includes 140,000
+   - PR includes 140,000
+   - PO includes 137,000 for this test
+   - Inventory value reflects remaining quantity x unit cost when unit cost is stored
+4. Download:
+   - Procurement CSV
+   - Inventory CSV
+   - RIS / ICS CSV
+   - Audit CSV
+5. Open each CSV and verify the created document numbers are present.
+
+L. AUDIT TRAIL
+1. Sidebar -> Audit Trail.
+2. Search visually for the complete chain:
+   Created PPMP
+   Generated APP
+   Approved APP
+   Created PR
+   Approved PR
+   AOQ upload/save/approval
+   Generated PO
+   Approved PO
+   NLP completed/approved
+   Created IAR
+   Approved IAR
+   Created ICS
+   Approved ICS
+3. Verify timestamps, user, module and reference numbers are sensible.
+
+M. DASHBOARD FINAL CHECK
+1. Return to Dashboard.
+2. Verify workflow counts increased.
+3. Check Pending Reviews.
+4. There should be no unexpected pending record for the completed chain.
+5. Refresh the browser and confirm the same data remains.
+
+NEGATIVE-PATH TEST (OPTIONAL, AFTER SUCCESSFUL BASELINE)
+Use 03_AOQ_OCR_TEST_MISMATCH_OPTIONAL.png on a fresh PR chain only.
+It deliberately changes:
+ - requested 2 laptops -> offered 1
+ - Intel i5 / 8GB / 512GB -> Celeron / 4GB / 128GB
+Purpose: verify the NLP catches or escalates a mismatch.
+
+BUG REPORT TEMPLATE
+For every failure, record:
+1. Module:
+2. Document number:
+3. Exact action clicked:
+4. Expected result:
+5. Actual result:
+6. Exact error message:
+7. Screenshot:
+8. PowerShell/server traceback:
+9. Does refresh reproduce it? Yes/No
+10. Does restarting app reproduce it? Yes/No
+
+PASS CRITERIA
+A "production-like happy-path pass" means:
+- no 500 error
+- no missing/blank linked records
+- every approval requires review
+- document numbers are unique
+- totals carry correctly
+- PO is based on AOQ winner
+- NLP links PR to PO
+- IAR approval adds inventory once
+- ICS approval deducts inventory once
+- reports and audit trail include the chain
+- refresh/restart does not erase data

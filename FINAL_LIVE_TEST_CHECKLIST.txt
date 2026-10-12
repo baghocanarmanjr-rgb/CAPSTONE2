@@ -1,0 +1,26 @@
+FINAL LIVE TEST CHECKLIST
+========================
+
+1. Start Docker Desktop / local Supabase.
+2. Start the revised system with START_SYSTEM.ps1.
+3. Open PPMP.
+4. Confirm a newly created PPMP shows status Draft.
+5. Click Review.
+6. Verify all PPMP items/details are visible on the read-only review page.
+7. Tick the review confirmation and click Mark PPMP ... as Reviewed.
+8. Return to PPMP and confirm status is Reviewed.
+9. Open Review again, tick approval confirmation, and click Approve PPMP.
+10. Confirm PPMP status is Approved.
+11. Open APP. Confirm only Approved PPMPs without an APP are listed.
+12. Select an Approved PPMP. The exact selected record must load without the red "Unable to load" error.
+13. Change to a different Source PPMP and verify the entire preview changes to the selected record.
+14. Generate APP and verify its source PPMP, item data, and total match the preview.
+15. Confirm the PPMP remains Approved after APP generation/approval and PR creation/approval.
+16. Open PPMP Edit items on a Draft/Reviewed PPMP and verify the modal is centered in the viewport.
+17. Save an edit and confirm the PPMP returns to Draft so it must be reviewed and approved again.
+18. Confirm a PPMP that already has an APP cannot be edited.
+19. Open the login page after signing out. Verify the green promotional panel is inset from the top/bottom, wider, rounded, and the login form is centered in the white workspace.
+20. Test tablet/mobile width: green panel hides on small screens and there is no horizontal scrolling.
+
+Expected PPMP workflow:
+Draft -> Reviewed -> Approved -> APP

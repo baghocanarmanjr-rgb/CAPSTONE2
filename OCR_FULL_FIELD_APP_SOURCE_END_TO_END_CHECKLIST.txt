@@ -1,0 +1,83 @@
+OCR FULL-FIELD / PPMP / APP END-TO-END CHECKLIST
+================================================
+
+PRECONDITIONS
+-------------
+1. Docker Desktop is running.
+2. Local Supabase/PostgreSQL is running.
+3. START_SYSTEM.ps1 reports the semantic mapper active, RapidFuzz true, Tesseract found, and FastText active.
+4. Sign in as an authorized user.
+
+TEST A - REVIEWED OCR PERSISTENCE
+--------------------------------
+1. Open PPMP -> DBM or NON-DBM.
+2. Upload a file containing all 12 PPMP fields.
+3. Open Review.
+4. Change at least two values manually, including Estimated Budget to `PHP 80,000.00`.
+5. Click Save Review.
+6. Refresh the browser.
+7. Reopen Review.
+PASS: every edited value is unchanged.
+8. Logout/login and repeat.
+PASS: every edited value is unchanged.
+9. Restart Flask and repeat.
+PASS: every edited value is unchanged.
+
+TEST B - OFFICIAL PPMP USES REVIEWED VALUES
+------------------------------------------
+1. Select the reviewed OCR row.
+2. Click Create Official PPMP Record.
+3. Open PPMP home.
+PASS: Description, Quantity/Size and Total display the reviewed values.
+4. Click Review items.
+PASS: all 12 official PPMP fields match the saved OCR Review exactly (budget normalized to 80000.00 is acceptable).
+PASS: a valid amount never becomes 0.
+
+TEST C - APP SOURCE PPMP EXACT-SELECTION PREVIEW
+------------------------------------------------
+1. Open APP.
+2. Choose the OCR-created Source PPMP.
+PASS: the preview loads from the selected PPMP and shows all 12 fields.
+PASS: Budget shows PHP 80,000.00 / ₱80,000.00, not zero.
+3. Choose a different PPMP.
+PASS: every preview field changes to the newly selected PPMP; no previous values remain.
+4. Switch back.
+PASS: the original exact values return.
+
+TEST D - GENERATED APP
+----------------------
+1. Select the OCR-created PPMP in APP.
+2. Click Generate APP.
+3. Open Review for the new APP.
+PASS: APP item details match the selected PPMP.
+PASS: APP total matches the PPMP budget.
+PASS: source PPMP link/number is correct.
+
+TEST E - FILE FORMAT MATRIX
+---------------------------
+Run OCR_FILETYPE_REGRESSION_TEST.py:
+    python OCR_FILETYPE_REGRESSION_TEST.py
+Expected: PASS for TXT, CSV, XLSX, XLSM, DOCX, native PDF, PNG, JPG, BMP, TIFF and scanned PDF.
+
+TEST F - FULL-FIELD APPLICATION HELPERS
+---------------------------------------
+Run after normal dependencies are installed:
+    python OCR_PPMP_APP_FULL_FIELD_TEST.py
+Expected:
+- PASS currency parser
+- PASS all 12 reviewed fields through PPMP + APP source payload
+
+TEST G - MULTI-ITEM TABLE
+-------------------------
+Upload a table with three procurement rows.
+PASS: three OCR draft rows are created.
+PASS: each row keeps its own description, qty/specification and budget.
+PASS: shared Funding/Procurement Method are inherited where present.
+
+TEST H - LOGIN UI
+-----------------
+Desktop:
+PASS: green panel is approximately 40%, white sign-in area approximately 60%.
+PASS: form is centered in the white area.
+Tablet/mobile:
+PASS: green promotional panel collapses at <=900px and sign-in is full width with no horizontal scrolling.

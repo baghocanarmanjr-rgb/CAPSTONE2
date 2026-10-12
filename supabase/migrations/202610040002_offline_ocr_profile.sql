@@ -1,0 +1,13 @@
+alter table public.ppmp add column if not exists source_type text;
+alter table public.ppmp add column if not exists ocr_source_filename text;
+alter table public.ppmp add column if not exists ocr_raw_text text;
+alter table public.ppmp add column if not exists ocr_average_confidence double precision;
+alter table public.ppmp add column if not exists ocr_verified boolean default false;
+alter table public.ppmp add column if not exists ocr_verified_by text;
+alter table public.ppmp add column if not exists ocr_verified_at text;
+alter table public.ppmp add column if not exists ocr_extraction_timestamp text;
+alter table public.users add column if not exists full_name text;
+alter table public.users add column if not exists display_name text;
+alter table public.users add column if not exists status text default 'Active';
+alter table public.users add column if not exists created_at text;
+alter table public.users add column if not exists last_login text;

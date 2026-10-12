@@ -1,0 +1,18 @@
+OCR -> PPMP -> APP REGRESSION CHECKLIST
+=======================================
+1. Start Docker Desktop and local Supabase.
+2. Run INSTALL_OFFLINE_OCR_AI.ps1 once if needed.
+3. Run START_SYSTEM.ps1. Startup must refuse to continue if semantic OCR, Tesseract, or FastText is missing.
+4. Open /health. Confirm application=ready, database=true, tesseract=true, fasttext_nlp=true, ocr_semantic_mapper=true.
+5. Upload a flexible PPMP OCR file.
+6. Review OCR-TEMP row, correct fields, click Save Review.
+7. Refresh page: reviewed draft must remain.
+8. Log out/in: reviewed draft must remain.
+9. Restart Flask: reviewed draft must remain.
+10. Select reviewed draft and click Create Official PPMP Record.
+11. Confirm official PPMP contains description, type, quantity/spec, mode, dates, fund, budget, documents and remarks.
+12. Attempt duplicate conversion: it must be blocked.
+13. Open APP and select that PPMP. Source preview must show actual OCR-derived description/specification/mode/funds/dates/budget.
+14. Generate APP and open Review. APP item must preserve the OCR-derived PPMP data.
+15. Continue PR -> AOQ -> PO -> FastText NLP -> IAR -> Inventory -> RIS/ICS.
+16. Confirm print pages and reports contain the correct linked data.
