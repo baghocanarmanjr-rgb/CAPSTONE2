@@ -23,4 +23,3 @@ Compare every affected value with the original document, including row count, id
 Choose relevant existing checks using [the test map](../asuncion-system-check/references/checks.md). Inspect their current side effects first. HTTP requests initialize the database; use an explicitly isolated PostgreSQL database for those checks. Run focused checks after a requested fix; do not change unrelated workflow behavior.
 
 Report expected versus observed values, changed paths, and what was actually checked. Separate lexical fallback results, semantic-model readiness, and end-to-end OCR evidence. If the source or a required dependency is missing, identify the unverified stage.
-
