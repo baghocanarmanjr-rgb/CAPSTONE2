@@ -1,38 +1,25 @@
 ---
 name: asuncion-workflow-review
-description: Review procurement workflow correctness in the Asuncion Supply & Property Management System. Use for document transitions, approval permissions, totals, inventory updates, duplicate processing, or audit records. Do not use for OCR extraction accuracy or unrelated visual styling.
+description: Fix or review Asuncion procurement transitions, approval gates, document links, stock movements, repeated submissions, and audit consistency. Use for workflow behavior rather than extraction accuracy or visual styling.
 ---
 
 # Asuncion Procurement Workflow Review
 
-## Review procedure
-1. Read AGENTS.md and the relevant project documentation.
-2. Identify the affected module, user role, starting state, action, and expected result.
-3. Inspect the relevant routes in app.py, database operations in db.py, templates, and Supabase schema or migrations.
-4. Trace the affected document relationships through the implemented workflow. Use the documented PPMP, APP, PR, AOQ, PO, NLP, IAR, Inventory, and RIS/ICS sequence as context; verify actual transitions in code.
-5. Check that the server enforces role permissions, required fields, and valid approval transitions.
-6. Check quantities, unit prices, subtotals, and totals against the source records.
-7. Check that linked records use the correct identifiers and preserve document relationships.
-8. Check that inventory changes happen at the intended stage and repeated submissions do not duplicate stock movements.
-9. Check transaction handling so failures do not leave partially updated records.
-10. Check that relevant actions produce accurate audit records.
-11. Preserve human review before approval and the existing PostgreSQL architecture.
+Use the requested review or fix scope. Identify the source record, user role, starting status, submitted action, and expected resulting documents or stock movement. Read [the transition map](references/transitions.md) for the affected path.
 
-## Verification
-- Review only unless the user requests a fix.
-- Inspect relevant test scripts before running them.
-- Use an isolated test database and synthetic records for checks that modify data.
-- Do not reset databases or import legacy seed records without explicit authorization.
-- Test the affected valid transition, an invalid or unauthorized transition, and repeated submission where relevant.
-- If the database or dependencies are unavailable, report static findings separately from unverified runtime behavior.
-- For requested fixes, keep changes focused and rerun the affected checks.
+## Trace the whole affected operation
 
-## Report
-Provide:
-- Workflow, roles, and code paths reviewed.
-- Expected versus actual behavior.
-- Findings with supporting evidence.
-- Changes made, if requested.
-- Checks run, results, and remaining limitations.
+- Follow the actual route in `app.py`, template/form payload, database writes, and audit entry. Use `next_available_records` and the schema to establish document eligibility and relationships; do not infer rules from a screen label alone.
+- Check state and permission guards on the server. `review_confirm=yes` is a form confirmation, not a role policy or durable proof of review. The existing approval routes are not universally Admin-only; preserve intended permissions and identify gaps without inventing a new role policy.
+- Preserve PPMP Draft -> Reviewed -> Approved, edit resets, and the approved-source gate for APP. APP can contain multiple rows linked to the same PPMP, one per item.
+- Recompute relevant amounts from saved items and preserve source identifiers. Check both upstream eligibility and downstream side effects when changing a transition.
+- Stock receipt belongs to IAR approval; stock deduction belongs to RIS/ICS approval. Replaying a request or failing midway must not silently duplicate stock or leave a partial operation.
+- Inspect the transaction actually used. `exec_db()` and `log()` commit separately; `BEGIN IMMEDIATE` becomes plain PostgreSQL `BEGIN`. Existing code is not blanket evidence of atomicity or concurrency safety. For a requested fix involving multiple writes, use one connection with explicit commit/rollback and the appropriate locked status check.
 
-Do not claim the full workflow passes when only individual steps were checked.
+## Verify observable outcomes
+
+Use synthetic records in an explicitly disposable PostgreSQL database. Even a first GET can initialize or repair data. Inspect selected scripts and [the test map](../asuncion-system-check/references/checks.md) before running them.
+
+For the affected transition, verify a valid action, an invalid state, relevant permission rejection, and a repeated submission. When changing stock or duplicate protection, also check rollback after a failure and concurrent submissions where practical. Assert exact record links, quantities, status, and audit outcomes rather than a successful HTTP response alone.
+
+Keep fixes within the requested workflow. Report concrete findings with code evidence and distinguish tested behavior from static conclusions or untested concurrency. Do not present an individual step as proof of the full procurement chain.

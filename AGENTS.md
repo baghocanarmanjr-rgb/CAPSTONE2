@@ -22,7 +22,7 @@ Verify documentation against the relevant source code before making changes.
 - supabase/schema.sql and supabase/migrations/: database schema.
 
 ## Development rules
-- Work on the activity branch feature/ai-skills.
+- Work on the branch chosen for the current task; do not force work onto an old feature branch.
 - Keep changes focused on the requested task.
 - Preserve offline operation after dependencies and models are installed.
 - Use PostgreSQL through the existing database layer; do not reintroduce SQLite.
@@ -33,7 +33,9 @@ Verify documentation against the relevant source code before making changes.
 
 ## Validation
 - Inspect relevant tests before running them to understand their effects.
+- Any Flask request can initialize or repair stored data. Use a disposable PostgreSQL database for HTTP and workflow tests; a temporary SQLite filename does not isolate this application.
 - For runtime changes, run relevant checks using test data.
+- For skills or documentation changes, validate their structure and referenced paths; application runtime checks are not required unless behavior also changes.
 - With local Supabase running, python .\SYSTEM_SMOKE_TEST.py is the documented smoke test.
 - For OCR changes, compare extracted fields with the original sample documents.
 - For workflow changes, check affected approvals, totals, inventory updates, and audit records.

@@ -1,34 +1,26 @@
 ---
 name: asuncion-ocr-review
-description: Review or troubleshoot document extraction and OCR field mapping in the Asuncion Supply & Property Management System. Use for incorrect extracted text, missing table rows, mismatched procurement fields, or OCR regression checks. Do not use for unrelated UI or database tasks.
+description: Fix or review Asuncion document extraction, OCR mapping, and reviewed PPMP fields through saving and APP generation. Use for missing rows, incorrect amounts, lost fields, or OCR regressions.
 ---
 
 # Asuncion OCR Review
 
-## Review procedure
-1. Read AGENTS.md and the relevant project documentation.
-2. Identify the affected document type, reported issue, and expected result.
-3. Inspect the relevant code in aoq_flexible.py, offline_ocr_mapper.py, and the calling routes in app.py.
-4. Trace extracted values into the affected form or table.
-5. Prefer native extraction for supported digital documents; preserve local OCR for scanned documents.
-6. Compare output against the original sample document. Check identifiers, descriptions, quantities, units, prices, decimal points, totals, and row alignment where applicable.
-7. Flag missing or uncertain values instead of inventing replacements.
-8. Preserve human review before approval and offline operation after setup.
+Use the requested review or fix scope. Start with the source document, its type, and the exact expected fields. Read [the pipeline map](references/pipeline.md) for the affected stage; confirm current functions before editing.
 
-## Verification
-- Use sample_files/ or user-provided test documents.
-- Inspect relevant OCR test scripts before running them.
-- Run only checks relevant to the affected extraction or mapping behavior.
-- If the source document, dependencies, or model is unavailable, explain what could not be verified.
-- Review only unless the user requests a fix. For requested fixes, keep changes focused and rerun the affected checks.
+## Preserve these contracts
 
-## Report
-Provide:
-- Document and code paths reviewed.
-- Expected versus actual extracted values.
-- Findings with supporting evidence.
-- Changes made, if requested.
-- Checks run, results, and remaining limitations.
+- Keep the 12 canonical `PPMP_FIELDS`, their order, and `ocr_field_0` through `ocr_field_11` aligned across Python, templates, and JavaScript. Missing review controls must not silently erase saved values.
+- Prefer native extraction for digital documents and local Tesseract for scans. Preserve offline model loading. A mapper fallback passing a unit check does not establish that the live upload's required semantic model is active.
+- Explicit source labels outrank semantic or lexical guesses. Preserve colons, decimal punctuation, long descriptions, and quantity/specification combinations. Distinguish a vertical form from a table of separate items.
+- Leave missing or uncertain values reviewable. Preserve the distinction between invalid currency and a valid zero; use `parse_currency_decimal` and the existing validation path for critical saves.
+- Trace reviewed fields into durable draft storage, conversion, the saved PPMP, and APP source serialization. Reviewed values must survive without a second OCR mapping pass. Preserve row locking, conversion linkage, and human approval gates already implemented.
+- For source-preview bugs, inspect `static/js/source-preview.js` so an older response cannot overwrite a newer selection.
 
-Do not claim extraction is correct without comparing it with the source.
+## Verify the changed stage
+
+Compare every affected value with the original document, including row count, identifiers, quantity/specifications, budget, currency punctuation, and all 12 fields when applicable. A saved-field fix also needs a reviewed-value round trip, not extraction alone.
+
+Choose relevant existing checks using [the test map](../asuncion-system-check/references/checks.md). Inspect their current side effects first. HTTP requests initialize the database; use an explicitly isolated PostgreSQL database for those checks. Run focused checks after a requested fix; do not change unrelated workflow behavior.
+
+Report expected versus observed values, changed paths, and what was actually checked. Separate lexical fallback results, semantic-model readiness, and end-to-end OCR evidence. If the source or a required dependency is missing, identify the unverified stage.
 
